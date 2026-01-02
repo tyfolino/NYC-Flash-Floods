@@ -2,11 +2,12 @@ import os
 
 import cdsapi
 
-years = list(range(1996, 2025))
+# years = list(range(1996, 2025))
+years = [1996]
 dataset = "reanalysis-era5-single-levels"
 
 # Output directory
-outdir = "/mnt/drive2/ERA5/NC_files/mslp"
+outdir = "/mnt/drive2/ERA5/NC_files/viwv"
 os.makedirs(outdir, exist_ok=True)
 
 client = cdsapi.Client()

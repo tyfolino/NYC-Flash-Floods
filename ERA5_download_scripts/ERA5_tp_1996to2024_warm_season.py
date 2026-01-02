@@ -6,7 +6,7 @@ years = list(range(1996, 2025))
 dataset = "reanalysis-era5-single-levels"
 
 # Output directory
-outdir = "/mnt/drive2/ERA5/NC_files"
+outdir = "/mnt/drive2/ERA5/NC_files/tp"
 os.makedirs(outdir, exist_ok=True)
 
 client = cdsapi.Client()

@@ -83,6 +83,6 @@ for year in years:
         "area": [90, -180, 0, 0],
     }
 
-    outfile = os.path.join(outdir, f"era5_tp_NWHem_{year}.nc")
+    outfile = os.path.join(outdir, f"era5_mslp_NWHem_{year}.nc")
 
     client.retrieve(dataset, request).download(outfile)
