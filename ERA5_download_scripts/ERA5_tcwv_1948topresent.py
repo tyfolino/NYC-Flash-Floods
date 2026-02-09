@@ -79,8 +79,8 @@ client = cdsapi.Client()
 out_dir = "/mnt/drive2/ERA5/tcwv"
 os.makedirs(out_dir, exist_ok=True)
 
-# Loop years 1948..2024 inclusive and download each year to a separate NetCDF
-for year in range(1948, 2025):
+# Loop years 2025..2026 inclusive and download each year to a separate NetCDF
+for year in range(2025, 2026):
     year_str = str(year)
     request["year"] = [year_str]
     out_file = os.path.join(out_dir, f"era5_tcwv_{year_str}.nc")
