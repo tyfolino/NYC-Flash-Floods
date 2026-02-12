@@ -2,22 +2,17 @@ import os
 
 import cdsapi
 
-years = list(range(1996, 2026))
-dataset = "reanalysis-era5-single-levels"
+years = list(range(1996, 2025))
+dataset = "reanalysis-era5-pressure-levels"
 base_outdir = "/mnt/drive2/ERA5/NC_files"
 
 # Variable lookup: short name -> CDS API variable name(s)
 VARIABLES = {
-    "mslp": ["mean_sea_level_pressure"],
-    "tp": ["total_precipitation"],
-    "viwv": [
-        "vertical_integral_of_eastward_water_vapour_flux",
-        "vertical_integral_of_northward_water_vapour_flux",
-    ],
+    "thetae": ["specific humidity", "temperature"],
 }
 
 # ---- Edit this to select the variable to download ----
-var_name = "mslp"
+var_name = "thetae"
 # -------------------------------------------------------
 
 cds_names = VARIABLES[var_name]
@@ -44,6 +39,7 @@ for year in years:
         "data_format": "netcdf",
         "download_format": "unarchived",
         "area": [90, -180, 0, 0],
+        "pressure_level": ["850"],
     }
 
     client.retrieve(dataset, request).download(outfile)
