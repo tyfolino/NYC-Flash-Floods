@@ -86,9 +86,7 @@ def main():
     moist_norm_ffe = load_moist_var(
         f"{SOM_INTERMEDIATE_PATH}{pfx}_norm_ffe.nc", var_name
     )
-    moist_ffe = load_moist_var(
-        f"{SOM_INTERMEDIATE_PATH}{pfx}_ffe.nc", var_name
-    )
+    moist_ffe = load_moist_var(f"{SOM_INTERMEDIATE_PATH}{pfx}_ffe.nc", var_name)
 
     z500_norm_weighted_ffe = xr.load_dataarray(
         f"{SOM_INTERMEDIATE_PATH}era5_Z500_norm_weighted_ffe.nc"
@@ -100,9 +98,7 @@ def main():
         features=[cfg["lat_dim"], cfg["lon_dim"]]
     ).values
 
-    X = np.concatenate(
-        (z500_flat, moist_flat * args.moisture_weight), axis=1
-    )
+    X = np.concatenate((z500_flat, moist_flat * args.moisture_weight), axis=1)
     print(f"Training matrix shape: {X.shape}")
 
     # ── SOM training ──────────────────────────────────────────────────────────

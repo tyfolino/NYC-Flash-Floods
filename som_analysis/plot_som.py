@@ -103,19 +103,13 @@ def main():
     moist_norm_ffe = load_moist_var(
         f"{SOM_INTERMEDIATE_PATH}{pfx}_norm_ffe.nc", var_name
     )
-    moist_ffe = load_moist_var(
-        f"{SOM_INTERMEDIATE_PATH}{pfx}_ffe.nc", var_name
-    )
+    moist_ffe = load_moist_var(f"{SOM_INTERMEDIATE_PATH}{pfx}_ffe.nc", var_name)
 
     z500_norm_weighted_ffe = xr.load_dataarray(
         f"{SOM_INTERMEDIATE_PATH}era5_Z500_norm_weighted_ffe.nc"
     )
-    z500_norm_ffe = xr.load_dataarray(
-        f"{SOM_INTERMEDIATE_PATH}era5_Z500_norm_ffe.nc"
-    )
-    z500_ffe = xr.load_dataarray(
-        f"{SOM_INTERMEDIATE_PATH}era5_Z500_ffe.nc"
-    )
+    z500_norm_ffe = xr.load_dataarray(f"{SOM_INTERMEDIATE_PATH}era5_Z500_norm_ffe.nc")
+    z500_ffe = xr.load_dataarray(f"{SOM_INTERMEDIATE_PATH}era5_Z500_ffe.nc")
     tp_ffe = xr.load_dataarray(f"{SOM_INTERMEDIATE_PATH}era5_tp_ffe.nc")
     mslp_ffe = xr.load_dataarray(f"{SOM_INTERMEDIATE_PATH}era5_mslp_ffe.nc")
 
@@ -171,21 +165,27 @@ def main():
                 plt.plot(
                     [coords[node, 0], coords[nbr, 0]],
                     [coords[node, 1], coords[nbr, 1]],
-                    "k-", lw=0.6, alpha=0.4,
+                    "k-",
+                    lw=0.6,
+                    alpha=0.4,
                 )
             if i + 1 < xdim:
                 nbr = (i + 1) * ydim + j
                 plt.plot(
                     [coords[node, 0], coords[nbr, 0]],
                     [coords[node, 1], coords[nbr, 1]],
-                    "k-", lw=0.6, alpha=0.4,
+                    "k-",
+                    lw=0.6,
+                    alpha=0.4,
                 )
 
     for idx, (x, y) in enumerate(coords):
         ix, iy = divmod(idx, ydim)
         plt.text(x, y, f"({ix},{iy})", fontsize=8, ha="center", va="center", zorder=5)
 
-    plt.title("Sammon / MDS Distortion Grid\nU-Matrix (Color) \\& Node Frequency (Size)")
+    plt.title(
+        "Sammon / MDS Distortion Grid\nU-Matrix (Color) \\& Node Frequency (Size)"
+    )
     plt.axis("off")
     plt.colorbar(sc, label="U-Matrix (Avg. Neighbor Distance)")
     plt.savefig(f"{fig_dir}/Z500_{_lbl}_som_sammon_mds.png", bbox_inches="tight")
@@ -200,13 +200,20 @@ def main():
         for j in range(ydim):
             ax = axes[j, i]
             im = ax.contourf(
-                lon, lat, moist_nodes[i, j],
-                cmap="balance", levels=levels_moist_weights,
+                lon,
+                lat,
+                moist_nodes[i, j],
+                cmap="balance",
+                levels=levels_moist_weights,
                 transform=ccrs.PlateCarree(),
             )
             cn = ax.contour(
-                lon, lat, z500_nodes[i, j],
-                colors="black", linewidths=0.5, levels=levels_Z,
+                lon,
+                lat,
+                z500_nodes[i, j],
+                colors="black",
+                linewidths=0.5,
+                levels=levels_Z,
                 transform=ccrs.PlateCarree(),
             )
             ax.clabel(cn, inline=True, fontsize=5, fmt="%.1f")
@@ -240,13 +247,21 @@ def main():
         for j in range(ydim):
             ax = axes[j, i]
             im = ax.contourf(
-                lon, lat, moist_patterns[i, j],
-                cmap="balance", levels=levels_moist_anom,
-                transform=ccrs.PlateCarree(), extend="both",
+                lon,
+                lat,
+                moist_patterns[i, j],
+                cmap="balance",
+                levels=levels_moist_anom,
+                transform=ccrs.PlateCarree(),
+                extend="both",
             )
             ax.contour(
-                lon, lat, z500_patterns[i, j],
-                colors="black", linewidths=0.5, levels=levels_Z_anom,
+                lon,
+                lat,
+                z500_patterns[i, j],
+                colors="black",
+                linewidths=0.5,
+                levels=levels_Z_anom,
                 transform=ccrs.PlateCarree(),
             )
             add_map_features(ax)
@@ -257,7 +272,8 @@ def main():
     plt.suptitle(
         f"Flash Flood Only SOM Composite Anomalies: "
         f"Z500 (contoured) + {moist_label_short} (shaded)",
-        fontsize=8, y=1.04,
+        fontsize=8,
+        y=1.04,
     )
     plt.savefig(
         f"{fig_dir}/Z500_and_{_lbl}_SOM_composite_anomalies_{_lbl}_shaded.png",
@@ -310,10 +326,15 @@ def main():
             else:
                 interp = "Poor"
 
-            representativeness.append({
-                "node": f"({i},{j})", "n": n_events,
-                "r_z500": r_z500, "r_moist": r_moist, "r_combined": r_combined,
-            })
+            representativeness.append(
+                {
+                    "node": f"({i},{j})",
+                    "n": n_events,
+                    "r_z500": r_z500,
+                    "r_moist": r_moist,
+                    "r_combined": r_combined,
+                }
+            )
             print(
                 f"({i},{j}){'':<4} {n_events:>4} {r_z500:>10.3f} "
                 f"{r_moist:>10.3f} {r_combined:>12.3f} {interp:<20}"
@@ -350,8 +371,13 @@ def main():
             r_val = r_grid[i, j]
             color = "white" if r_val < 0.75 else "black"
             ax.text(
-                i, j, f"{r_val:.2f}",
-                ha="center", va="center", fontsize=8, color=color,
+                i,
+                j,
+                f"{r_val:.2f}",
+                ha="center",
+                va="center",
+                fontsize=8,
+                color=color,
             )
 
     cbar = fig.colorbar(im, ax=ax, shrink=0.8)
@@ -365,19 +391,30 @@ def main():
     ax.bar(
         x - width,
         [r["r_z500"] for r in representativeness],
-        width, label="Z500", color="steelblue", alpha=0.9,
+        width,
+        label="Z500",
+        color="steelblue",
+        alpha=0.9,
     )
     ax.bar(
         x,
         [r["r_moist"] for r in representativeness],
-        width, label=moist_label_short, color="coral", alpha=0.9,
+        width,
+        label=moist_label_short,
+        color="coral",
+        alpha=0.9,
     )
     ax.bar(
         x + width,
         [r["r_combined"] for r in representativeness],
-        width, label="Combined", color="seagreen", alpha=0.9,
+        width,
+        label="Combined",
+        color="seagreen",
+        alpha=0.9,
     )
-    ax.axhline(0.8, color="gray", linestyle="--", linewidth=0.8, label="r = 0.8 threshold")
+    ax.axhline(
+        0.8, color="gray", linestyle="--", linewidth=0.8, label="r = 0.8 threshold"
+    )
     ax.set_xlabel("SOM Node", fontsize=7)
     ax.set_ylabel("Pattern Correlation (r)", fontsize=7)
     ax.set_title("Representativeness by Variable", fontsize=8)
@@ -408,13 +445,21 @@ def main():
         for j in range(ydim):
             ax = axes[j, i]
             im = ax.contourf(
-                lon, lat, moist_patterns_raw[i, j],
-                cmap=cmap_moist_raw, levels=levels_moist_raw,
-                transform=ccrs.PlateCarree(), extend="max",
+                lon,
+                lat,
+                moist_patterns_raw[i, j],
+                cmap=cmap_moist_raw,
+                levels=levels_moist_raw,
+                transform=ccrs.PlateCarree(),
+                extend="max",
             )
             cn = ax.contour(
-                lon, lat, z500_patterns_raw[i, j] / 98.1,
-                colors="black", linewidths=0.5, levels=levels_Z_raw,
+                lon,
+                lat,
+                z500_patterns_raw[i, j] / 98.1,
+                colors="black",
+                linewidths=0.5,
+                levels=levels_Z_raw,
                 transform=ccrs.PlateCarree(),
             )
             ax.clabel(cn, inline=True, fontsize=5, fmt="%.0f")
@@ -426,7 +471,8 @@ def main():
     plt.suptitle(
         f"Flash Flood Only SOM Composite: "
         f"{moist_label_short} (shaded) + Z500 (contoured)",
-        fontsize=8, y=1.04,
+        fontsize=8,
+        y=1.04,
     )
     plt.savefig(
         f"{fig_dir}/Z500_and_{_lbl}_SOM_composite_mean_{_lbl}_shaded.png",
@@ -450,8 +496,14 @@ def main():
                 min_lons.append(float(lon[min_lon_idx]))
 
             ax.scatter(
-                min_lons, min_lats, c="blue", s=15, alpha=0.7,
-                edgecolors="black", linewidths=0.3, transform=ccrs.PlateCarree(),
+                min_lons,
+                min_lats,
+                c="blue",
+                s=15,
+                alpha=0.7,
+                edgecolors="black",
+                linewidths=0.3,
+                transform=ccrs.PlateCarree(),
             )
             add_map_features(ax)
             ax.set_title(f"({i},{j})  N={counts[i, j]}", fontsize=6)
@@ -478,15 +530,22 @@ def main():
                 max_lons.append(float(lon[max_lon_idx]))
 
             ax.scatter(
-                max_lons, max_lats, c="red", s=15, alpha=0.7,
-                edgecolors="black", linewidths=0.3, transform=ccrs.PlateCarree(),
+                max_lons,
+                max_lats,
+                c="red",
+                s=15,
+                alpha=0.7,
+                edgecolors="black",
+                linewidths=0.3,
+                transform=ccrs.PlateCarree(),
             )
             add_map_features(ax)
             ax.set_title(f"({i},{j})  N={counts[i, j]}", fontsize=6)
 
     plt.suptitle(
         f"{moist_label_short} Anomaly Maximum Locations by SOM Node",
-        fontsize=8, y=1.04,
+        fontsize=8,
+        y=1.04,
     )
     plt.savefig(
         f"{fig_dir}/Z500_and_{_lbl}_SOM_{_lbl}_max_locations.png", bbox_inches="tight"
@@ -497,25 +556,47 @@ def main():
     if not args.skip_indiv:
         print("Plotting individual node events (this may take a while) ...")
         plot_node_events(
-            moist_ffe, bmus, xdim, ydim, lon, lat,
+            moist_ffe,
+            bmus,
+            xdim,
+            ydim,
+            lon,
+            lat,
             time_dim=moist_time_dim,
-            levels=levels_moist_indiv, cmap=cmap_moist_raw,
+            levels=levels_moist_indiv,
+            cmap=cmap_moist_raw,
             save_pattern=f"{fig_dir}/indiv-nodes/node_{{i}}_{{j}}.png",
             cbar_label=f"{moist_label_short} ({moist_units_raw})",
-            z500_data=z500_ffe, z500_levels=range(552, 595, 3),
-            z500_scale=1 / 98.1, z500_time_dim="time",
+            z500_data=z500_ffe,
+            z500_levels=range(552, 595, 3),
+            z500_scale=1 / 98.1,
+            z500_time_dim="time",
         )
         plot_node_events(
-            tp_ffe, bmus, xdim, ydim, lon, lat,
-            levels=np.arange(0, 28, 3), cmap="HomeyerRainbow",
+            tp_ffe,
+            bmus,
+            xdim,
+            ydim,
+            lon,
+            lat,
+            levels=np.arange(0, 28, 3),
+            cmap="HomeyerRainbow",
             save_pattern=f"{fig_dir}/indiv-nodes/node_{{i}}_{{j}}_precip.png",
-            scale=1000, cbar_label="Total Precipitation (mm)",
+            scale=1000,
+            cbar_label="Total Precipitation (mm)",
         )
         plot_node_events(
-            mslp_ffe, bmus, xdim, ydim, lon, lat,
-            levels=np.arange(976, 1041, 4), cmap=None,
+            mslp_ffe,
+            bmus,
+            xdim,
+            ydim,
+            lon,
+            lat,
+            levels=np.arange(976, 1041, 4),
+            cmap=None,
             save_pattern=f"{fig_dir}/indiv-nodes/node_{{i}}_{{j}}_mslp.png",
-            scale=0.01, contour=True,
+            scale=0.01,
+            contour=True,
         )
     else:
         print("Skipping individual node event plots (--skip-indiv).")
@@ -548,7 +629,8 @@ def main():
 
     plt.suptitle(
         "Warm-Season (May\u2013Oct) Event Distribution per SOM Node",
-        fontsize=8, y=1.04,
+        fontsize=8,
+        y=1.04,
     )
     plt.savefig(
         f"{fig_dir}/Z500_and_{_lbl}_som_monthly_counts.png", bbox_inches="tight"
@@ -593,7 +675,9 @@ def main():
     if p_value < 0.05:
         print("-> REJECT H0 at alpha=0.05. Monthly distributions differ across nodes.")
     else:
-        print("-> FAIL TO REJECT H0. No significant difference in monthly distributions.")
+        print(
+            "-> FAIL TO REJECT H0. No significant difference in monthly distributions."
+        )
 
     # Pairwise comparisons
     pairs = list(combinations(range(n_nodes), 2))

@@ -88,8 +88,16 @@ def compute_asos_max_precip(bmu_df, precip_dfs, window_hours=6):
 
 
 def plot_precip_histograms(
-    bmu_df, col, xdim, ydim, fig_dir, _lbl, color, source_label,
-    bins=None, xlim=None,
+    bmu_df,
+    col,
+    xdim,
+    ydim,
+    fig_dir,
+    _lbl,
+    color,
+    source_label,
+    bins=None,
+    xlim=None,
 ):
     """Plot per-node precipitation histograms."""
     if bins is None:
@@ -104,19 +112,26 @@ def plot_precip_histograms(
     for i in range(xdim):
         for j in range(ydim):
             ax = axes[j, i]
-            node_data = bmu_df[
-                (bmu_df["node_i"] == i) & (bmu_df["node_j"] == j)
-            ][col].dropna()
+            node_data = bmu_df[(bmu_df["node_i"] == i) & (bmu_df["node_j"] == j)][
+                col
+            ].dropna()
 
             ax.hist(
-                node_data, bins=bins, color=color, alpha=0.9,
-                edgecolor="white", linewidth=0.5,
+                node_data,
+                bins=bins,
+                color=color,
+                alpha=0.9,
+                edgecolor="white",
+                linewidth=0.5,
             )
             n = len(node_data)
             if n > 0:
                 median = node_data.median()
                 ax.axvline(
-                    median, color="red", linestyle="--", linewidth=1,
+                    median,
+                    color="red",
+                    linestyle="--",
+                    linewidth=1,
                     label=f'Median: {median:.2f}"',
                 )
                 ax.legend(fontsize=4, loc="upper right")
@@ -134,7 +149,8 @@ def plot_precip_histograms(
 
     plt.suptitle(
         rf"Max Hourly {source_label} Precip ($\pm$6 hr window) by SOM Node",
-        fontsize=8, y=1.02,
+        fontsize=8,
+        y=1.02,
     )
     fname = f"Z500_and_{_lbl}_som_max_precip_histograms_{source_label.lower().replace(' ', '_')}.png"
     plt.savefig(f"{fig_dir}/{fname}", bbox_inches="tight")
@@ -157,8 +173,10 @@ def compute_stageiv_max_precip(bmu_df, window_hours=6):
     lon2d = ds_s4["longitude"].values
 
     spatial_mask = (
-        (lat2d >= nyc_lat_min) & (lat2d <= nyc_lat_max)
-        & (lon2d >= nyc_lon_min) & (lon2d <= nyc_lon_max)
+        (lat2d >= nyc_lat_min)
+        & (lat2d <= nyc_lat_max)
+        & (lon2d >= nyc_lon_min)
+        & (lon2d <= nyc_lon_max)
     )
 
     print(f"StageIV time range : {s4_times.min()} -- {s4_times.max()}")
@@ -172,9 +190,8 @@ def compute_stageiv_max_precip(bmu_df, window_hours=6):
     event_windows = []
     for _, row in bmu_df.iterrows():
         t0 = row["timestamp"]
-        mask = (
-            (s4_times >= t0 - pd.Timedelta(hours=window_hours))
-            & (s4_times <= t0 + pd.Timedelta(hours=window_hours))
+        mask = (s4_times >= t0 - pd.Timedelta(hours=window_hours)) & (
+            s4_times <= t0 + pd.Timedelta(hours=window_hours)
         )
         idxs = np.where(mask)[0].tolist()
         event_windows.append(idxs)
@@ -235,9 +252,8 @@ def compute_era5_max_precip(bmu_df, window_hours=6):
 
         for idx, row in grp.iterrows():
             t0 = row["timestamp"]
-            tmask = (
-                (era5_times >= t0 - pd.Timedelta(hours=window_hours))
-                & (era5_times <= t0 + pd.Timedelta(hours=window_hours))
+            tmask = (era5_times >= t0 - pd.Timedelta(hours=window_hours)) & (
+                era5_times <= t0 + pd.Timedelta(hours=window_hours)
             )
             t_idxs = np.where(tmask)[0]
             if len(t_idxs) == 0:
@@ -261,8 +277,10 @@ def compute_tc_associations(bmu_df, xdim, ydim, time_window_hours=6):
     lon_min, lon_max = -100.0, -60.0
 
     ibtracs_domain = ibtracs[
-        (ibtracs["LAT"] >= lat_min) & (ibtracs["LAT"] <= lat_max)
-        & (ibtracs["LON"] >= lon_min) & (ibtracs["LON"] <= lon_max)
+        (ibtracs["LAT"] >= lat_min)
+        & (ibtracs["LAT"] <= lat_max)
+        & (ibtracs["LON"] >= lon_min)
+        & (ibtracs["LON"] <= lon_max)
     ].copy()
 
     print(f"Total IBTrACS records : {len(ibtracs):,}")
@@ -280,29 +298,33 @@ def compute_tc_associations(bmu_df, xdim, ydim, time_window_hours=6):
 
         if len(matching_tcs) > 0:
             storm_ids = matching_tcs["SID"].unique()
-            tc_associations.append({
-                "timestamp": event_time,
-                "node_i": row["node_i"],
-                "node_j": row["node_j"],
-                "tc_present": True,
-                "n_storms": len(storm_ids),
-                "storm_ids": ", ".join(storm_ids),
-                "storm_status": (
-                    matching_tcs["STAT"].mode().iloc[0]
-                    if len(matching_tcs["STAT"].dropna()) > 0
-                    else "Unknown"
-                ),
-            })
+            tc_associations.append(
+                {
+                    "timestamp": event_time,
+                    "node_i": row["node_i"],
+                    "node_j": row["node_j"],
+                    "tc_present": True,
+                    "n_storms": len(storm_ids),
+                    "storm_ids": ", ".join(storm_ids),
+                    "storm_status": (
+                        matching_tcs["STAT"].mode().iloc[0]
+                        if len(matching_tcs["STAT"].dropna()) > 0
+                        else "Unknown"
+                    ),
+                }
+            )
         else:
-            tc_associations.append({
-                "timestamp": event_time,
-                "node_i": row["node_i"],
-                "node_j": row["node_j"],
-                "tc_present": False,
-                "n_storms": 0,
-                "storm_ids": "",
-                "storm_status": "",
-            })
+            tc_associations.append(
+                {
+                    "timestamp": event_time,
+                    "node_i": row["node_i"],
+                    "node_j": row["node_j"],
+                    "tc_present": False,
+                    "n_storms": 0,
+                    "storm_ids": "",
+                    "storm_status": "",
+                }
+            )
 
     tc_df = pd.DataFrame(tc_associations)
     return tc_df, ibtracs, ibtracs_domain
@@ -332,8 +354,13 @@ def plot_tc_association(tc_df, xdim, ydim, fig_dir, _lbl):
     ax = axes[0]
     ax.bar(x, non_tc_flat, 0.6, label="Non-TC", color="steelblue", alpha=0.9)
     ax.bar(
-        x, tc_flat, 0.6, bottom=non_tc_flat,
-        label="TC-Associated", color="coral", alpha=0.9,
+        x,
+        tc_flat,
+        0.6,
+        bottom=non_tc_flat,
+        label="TC-Associated",
+        color="coral",
+        alpha=0.9,
     )
     ax.set_xlabel("SOM Node", fontsize=7)
     ax.set_ylabel("Number of Events", fontsize=7)
@@ -347,12 +374,19 @@ def plot_tc_association(tc_df, xdim, ydim, fig_dir, _lbl):
     bars = ax.bar(x, tc_pct, 0.6, color="coral", alpha=0.9, edgecolor="white")
     for bar, pct, tc, total in zip(bars, tc_pct, tc_flat, totals):
         ax.text(
-            bar.get_x() + bar.get_width() / 2, bar.get_height() + 1,
-            f"{int(tc)}/{int(total)}", ha="center", va="bottom", fontsize=6,
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 1,
+            f"{int(tc)}/{int(total)}",
+            ha="center",
+            va="bottom",
+            fontsize=6,
         )
     overall_pct = 100 * tc_flat.sum() / totals.sum()
     ax.axhline(
-        overall_pct, color="red", linestyle="--", linewidth=1,
+        overall_pct,
+        color="red",
+        linestyle="--",
+        linewidth=1,
         label=f"Overall: {overall_pct:.1f}\\%",
     )
     ax.set_xlabel("SOM Node", fontsize=7)
@@ -364,7 +398,9 @@ def plot_tc_association(tc_df, xdim, ydim, fig_dir, _lbl):
     ax.legend(fontsize=6, loc="upper right")
     ax.grid(True, linewidth=0.3, alpha=0.5, axis="y")
 
-    plt.savefig(f"{fig_dir}/Z500_and_{_lbl}_som_tc_association.png", bbox_inches="tight")
+    plt.savefig(
+        f"{fig_dir}/Z500_and_{_lbl}_som_tc_association.png", bbox_inches="tight"
+    )
     plt.close()
     print(f"Saved TC association figure.")
 
@@ -419,12 +455,19 @@ def print_tc_stats(tc_df, tc_flat, non_tc_flat, xdim, ydim):
 
 
 def plot_tc_tracks(
-    tc_df, ibtracs, xdim, ydim, fig_dir, _lbl,
+    tc_df,
+    ibtracs,
+    xdim,
+    ydim,
+    fig_dir,
+    _lbl,
 ):
     """Plot TC tracks during flash flood events."""
     node_colors = {
-        (0, 0): "tab:blue", (0, 1): "tab:orange",
-        (1, 0): "tab:green", (1, 1): "tab:red",
+        (0, 0): "tab:blue",
+        (0, 1): "tab:orange",
+        (1, 0): "tab:green",
+        (1, 1): "tab:red",
     }
     lat_min, lat_max = 30.0, 54.0
     lon_min, lon_max = -100.0, -60.0
@@ -446,39 +489,57 @@ def plot_tc_tracks(
                 continue
 
             ax.plot(
-                full_track["LON"], full_track["LAT"],
-                color=color, linewidth=0.8, alpha=0.3,
+                full_track["LON"],
+                full_track["LAT"],
+                color=color,
+                linewidth=0.8,
+                alpha=0.3,
                 transform=ccrs.PlateCarree(),
             )
 
-            wm = (
-                (full_track["ISO_TIME"] >= event_time - pd.Timedelta(hours=48))
-                & (full_track["ISO_TIME"] <= event_time + pd.Timedelta(hours=48))
+            wm = (full_track["ISO_TIME"] >= event_time - pd.Timedelta(hours=48)) & (
+                full_track["ISO_TIME"] <= event_time + pd.Timedelta(hours=48)
             )
             wt = full_track[wm]
             if len(wt) > 1:
                 ax.plot(
-                    wt["LON"], wt["LAT"],
-                    color=color, linewidth=1.2, alpha=0.85,
+                    wt["LON"],
+                    wt["LAT"],
+                    color=color,
+                    linewidth=1.2,
+                    alpha=0.85,
                     transform=ccrs.PlateCarree(),
                 )
 
             ci = (full_track["ISO_TIME"] - event_time).abs().idxmin()
             cp = full_track.loc[ci]
             ax.scatter(
-                cp["LON"], cp["LAT"], color=color, s=20, marker="o",
-                edgecolor="black", linewidth=0.5, zorder=7,
+                cp["LON"],
+                cp["LAT"],
+                color=color,
+                s=20,
+                marker="o",
+                edgecolor="black",
+                linewidth=0.5,
+                zorder=7,
                 transform=ccrs.PlateCarree(),
             )
 
     ax.plot(
         [lon_min, lon_max, lon_max, lon_min, lon_min],
         [lat_min, lat_min, lat_max, lat_max, lat_min],
-        "k--", linewidth=1, transform=ccrs.PlateCarree(),
+        "k--",
+        linewidth=1,
+        transform=ccrs.PlateCarree(),
     )
     ax.scatter(
-        -74.0, 40.7, color="black", s=100, marker="*",
-        zorder=10, transform=ccrs.PlateCarree(),
+        -74.0,
+        40.7,
+        color="black",
+        s=100,
+        marker="*",
+        zorder=10,
+        transform=ccrs.PlateCarree(),
     )
     ax.text(-73.5, 40.7, "NYC", fontsize=7, transform=ccrs.PlateCarree())
     ax.add_feature(cfeature.COASTLINE, linewidth=0.5)
@@ -488,13 +549,18 @@ def plot_tc_tracks(
 
     legend_elements = [
         plt.Line2D(
-            [0], [0], color=node_colors[(i, j)],
-            linewidth=2, label=f"Node ({i},{j})",
+            [0],
+            [0],
+            color=node_colors[(i, j)],
+            linewidth=2,
+            label=f"Node ({i},{j})",
         )
         for i in range(xdim)
         for j in range(ydim)
     ] + [
-        plt.Line2D([0], [0], color="gray", linewidth=0.8, alpha=0.5, label="Full track"),
+        plt.Line2D(
+            [0], [0], color="gray", linewidth=0.8, alpha=0.5, label="Full track"
+        ),
         plt.Line2D([0], [0], color="gray", linewidth=1.2, label=r"$\pm$48 hr window"),
     ]
     ax.legend(handles=legend_elements, loc="lower right", fontsize=6)
@@ -512,15 +578,44 @@ def plot_tc_tracks(
 
 
 def plot_ida_case_study(
-    precip_dfs, ds_s4, s4_times, spatial_mask, lat2d, lon2d, fig_dir, _lbl,
+    precip_dfs,
+    ds_s4,
+    s4_times,
+    spatial_mask,
+    lat2d,
+    lon2d,
+    fig_dir,
+    _lbl,
 ):
     """Three-panel comparison of max 1-hour precip during Hurricane Ida."""
     M_TO_IN = 1000.0 / 25.4
 
     nws_levels = [
-        0.01, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50, 0.60,
-        0.70, 0.80, 0.90, 1.00, 1.25, 1.50, 1.75, 2.00, 2.50, 3.00,
-        3.50, 4.00, 5.00, 6.00, 8.00,
+        0.01,
+        0.05,
+        0.10,
+        0.15,
+        0.20,
+        0.25,
+        0.30,
+        0.40,
+        0.50,
+        0.60,
+        0.70,
+        0.80,
+        0.90,
+        1.00,
+        1.25,
+        1.50,
+        1.75,
+        2.00,
+        2.50,
+        3.00,
+        3.50,
+        4.00,
+        5.00,
+        6.00,
+        8.00,
     ]
     _n_bins = len(nws_levels) - 1
     cmap_nws = ListedColormap(ctables.registry["precipitation"]).resampled(_n_bins)
@@ -585,9 +680,12 @@ def plot_ida_case_study(
 
     # Build figure
     fig, axes = plt.subplots(
-        1, 3, figsize=(10, 3.5),
+        1,
+        3,
+        figsize=(10, 3.5),
         subplot_kw={"projection": ccrs.PlateCarree()},
-        constrained_layout=True, dpi=300,
+        constrained_layout=True,
+        dpi=300,
     )
     fig.get_layout_engine().set(rect=(0, 0, 1, 0.88))
 
@@ -598,8 +696,13 @@ def plot_ida_case_study(
         ax.add_feature(cfeature.COASTLINE.with_scale("10m"), linewidth=0.5, zorder=4)
         ax.add_feature(cfeature.STATES.with_scale("10m"), linewidth=0.4, zorder=4)
         ax.scatter(
-            -74.0, 40.7, color="black", s=20, marker="*",
-            zorder=5, transform=ccrs.PlateCarree(),
+            -74.0,
+            40.7,
+            color="black",
+            s=20,
+            marker="*",
+            zorder=5,
+            transform=ccrs.PlateCarree(),
         )
 
     for ax, title in zip(
@@ -617,14 +720,27 @@ def plot_ida_case_study(
     for name, (slat, slon) in STATION_COORDS.items():
         val = station_ida_max.get(name, np.nan)
         ax.scatter(
-            [slon], [slat], c=[val], cmap=cmap_nws, norm=norm_nws,
-            s=70, marker="o", edgecolors="k", linewidths=0.5,
-            zorder=5, transform=ccrs.PlateCarree(),
+            [slon],
+            [slat],
+            c=[val],
+            cmap=cmap_nws,
+            norm=norm_nws,
+            s=70,
+            marker="o",
+            edgecolors="k",
+            linewidths=0.5,
+            zorder=5,
+            transform=ccrs.PlateCarree(),
         )
         label, ha, dlon, dlat = station_labels[name]
         ax.text(
-            slon + dlon, slat + dlat, label,
-            fontsize=5, ha=ha, transform=ccrs.PlateCarree(), zorder=6,
+            slon + dlon,
+            slat + dlat,
+            label,
+            fontsize=5,
+            ha=ha,
+            transform=ccrs.PlateCarree(),
+            zorder=6,
         )
 
     # (b) StageIV
@@ -632,18 +748,29 @@ def plot_ida_case_study(
     plot_s4 = np.where(spatial_mask, ida_s4_max_in, np.nan)
     plot_s4 = np.where(plot_s4 >= nws_levels[0], plot_s4, np.nan)
     ax.pcolormesh(
-        lon2d, lat2d, plot_s4,
-        cmap=cmap_nws, norm=norm_nws, shading="auto",
-        zorder=2, transform=ccrs.PlateCarree(),
+        lon2d,
+        lat2d,
+        plot_s4,
+        cmap=cmap_nws,
+        norm=norm_nws,
+        shading="auto",
+        zorder=2,
+        transform=ccrs.PlateCarree(),
     )
 
     # (c) ERA5
     ax = axes[2]
     plot_e5 = np.where(ida_e5_max_in >= nws_levels[0], ida_e5_max_in, np.nan)
     ax.pcolormesh(
-        e5_lon2d, e5_lat2d, plot_e5,
-        cmap=cmap_nws, norm=norm_nws, shading="auto",
-        zorder=2, edgecolors="gray", linewidths=0.4,
+        e5_lon2d,
+        e5_lat2d,
+        plot_e5,
+        cmap=cmap_nws,
+        norm=norm_nws,
+        shading="auto",
+        zorder=2,
+        edgecolors="gray",
+        linewidths=0.4,
         transform=ccrs.PlateCarree(),
     )
 
@@ -651,16 +778,20 @@ def plot_ida_case_study(
     sm = ScalarMappable(cmap=cmap_nws, norm=norm_nws)
     sm.set_array([])
     cbar = fig.colorbar(
-        sm, ax=axes.tolist(), orientation="vertical",
-        pad=0.02, shrink=0.85, extend="max",
+        sm,
+        ax=axes.tolist(),
+        orientation="vertical",
+        pad=0.02,
+        shrink=0.85,
+        extend="max",
     )
     cbar.set_label("Max Hourly Precip (in)", fontsize=7)
     cbar.ax.tick_params(labelsize=6)
 
     fig.suptitle(
-        "Hurricane Ida: Maximum Hourly Precipitation by Source\n"
-        "1--2 September 2021",
-        fontsize=8, y=0.9,
+        "Hurricane Ida: Maximum Hourly Precipitation by Source\n1--2 September 2021",
+        fontsize=8,
+        y=0.9,
     )
     plt.savefig(f"{fig_dir}/ida_precip_three_sources.png", bbox_inches="tight")
     plt.close()
@@ -715,8 +846,14 @@ def main():
     print(node_stats)
 
     plot_precip_histograms(
-        bmu_df, "max_precip_in", xdim, ydim, fig_dir, _lbl,
-        color="steelblue", source_label="ASOS",
+        bmu_df,
+        "max_precip_in",
+        xdim,
+        ydim,
+        fig_dir,
+        _lbl,
+        color="steelblue",
+        source_label="ASOS",
     )
 
     # ── StageIV Precipitation ─────────────────────────────────────────────────
@@ -740,9 +877,16 @@ def main():
     print(s4_node_stats)
 
     plot_precip_histograms(
-        bmu_df, "max_precip_s4_in", xdim, ydim, fig_dir, _lbl,
-        color="darkorange", source_label="Stage IV",
-        bins=np.arange(0, 4.01, 0.25), xlim=(0, 4.0),
+        bmu_df,
+        "max_precip_s4_in",
+        xdim,
+        ydim,
+        fig_dir,
+        _lbl,
+        color="darkorange",
+        source_label="Stage IV",
+        bins=np.arange(0, 4.01, 0.25),
+        xlim=(0, 4.0),
     )
 
     # ── ERA5 Precipitation ────────────────────────────────────────────────────
@@ -764,8 +908,14 @@ def main():
 
     era5_max = bmu_df["max_precip_era5_in"].max()
     plot_precip_histograms(
-        bmu_df, "max_precip_era5_in", xdim, ydim, fig_dir, _lbl,
-        color="mediumpurple", source_label="ERA5",
+        bmu_df,
+        "max_precip_era5_in",
+        xdim,
+        ydim,
+        fig_dir,
+        _lbl,
+        color="mediumpurple",
+        source_label="ERA5",
         bins=np.arange(0, max(era5_max + 0.25, 2.01), 0.1),
         xlim=(0, max(era5_max + 0.1, 2.0)),
     )
@@ -777,7 +927,9 @@ def main():
     tc_df, ibtracs, ibtracs_domain = compute_tc_associations(bmu_df, xdim, ydim)
 
     n_tc = tc_df["tc_present"].sum()
-    print(f"\nTC-associated events: {n_tc}/{len(tc_df)} ({100 * n_tc / len(tc_df):.1f}%)")
+    print(
+        f"\nTC-associated events: {n_tc}/{len(tc_df)} ({100 * n_tc / len(tc_df):.1f}%)"
+    )
     for i in range(xdim):
         for j in range(ydim):
             nd = tc_df[(tc_df["node_i"] == i) & (tc_df["node_j"] == j)]
@@ -803,9 +955,9 @@ def main():
         tc_df[["timestamp", "tc_present", "storm_ids"]], on="timestamp", how="left"
     )
     tc_precip = bmu_df_with_tc[bmu_df_with_tc["tc_present"]]["max_precip_in"].dropna()
-    non_tc_precip = (
-        bmu_df_with_tc[~bmu_df_with_tc["tc_present"]]["max_precip_in"].dropna()
-    )
+    non_tc_precip = bmu_df_with_tc[~bmu_df_with_tc["tc_present"]][
+        "max_precip_in"
+    ].dropna()
 
     print("\n" + "=" * 60)
     print("TC vs NON-TC PRECIPITATION COMPARISON")
@@ -834,7 +986,14 @@ def main():
     print("IDA CASE STUDY")
     print("=" * 60)
     plot_ida_case_study(
-        precip_dfs, ds_s4, s4_times, spatial_mask, lat2d, lon2d, fig_dir, _lbl,
+        precip_dfs,
+        ds_s4,
+        s4_times,
+        spatial_mask,
+        lat2d,
+        lon2d,
+        fig_dir,
+        _lbl,
     )
 
     print(f"\nAll outputs saved to {fig_dir}/")

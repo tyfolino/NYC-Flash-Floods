@@ -122,9 +122,7 @@ def get_paths(moisture_var, moisture_weight=1):
         fig_dir = os.path.join(
             FIGS_DIR, f"Z500-and-{w_prefix}{moisture_var.lower()}-SOM"
         )
-        bmu_csv = os.path.join(
-            DATA_DIR, f"som_2x2_bmus_{w_prefix}{moisture_var}.csv"
-        )
+        bmu_csv = os.path.join(DATA_DIR, f"som_2x2_bmus_{w_prefix}{moisture_var}.csv")
 
     return {
         "fig_dir": fig_dir,
