@@ -31,6 +31,7 @@ from .helpers import (
     get_node_indices,
     load_moist_var,
     plot_node_events,
+    plot_single_events,
 )
 
 
@@ -54,6 +55,11 @@ def parse_args():
         "--skip-indiv",
         action="store_true",
         help="Skip individual node event plots (slow).",
+    )
+    parser.add_argument(
+        "--single-events",
+        action="store_true",
+        help="Save each event as its own figure (one file per event per node).",
     )
     return parser.parse_args()
 
@@ -480,6 +486,71 @@ def main():
     )
     plt.close()
 
+    # ── Cross-variable composite mean maps ────────────────────────────────────
+    # For each moisture variable NOT used in training, composite its raw field
+    # using the same BMU assignments.  This shows how synoptic patterns
+    # identified by one variable project onto another.
+    other_vars = [v for v in MOISTURE_CONFIGS if v != args.moisture_var]
+    if other_vars:
+        print("Plotting cross-variable composites ...")
+    for other_var in other_vars:
+        other_cfg = MOISTURE_CONFIGS[other_var]
+        other_file_label = other_cfg["file_label"]
+        other_pfx = other_cfg["file_prefix"]
+        other_var_name = other_cfg["var_name"]
+        other_time_dim = other_cfg["time_dim"]
+
+        other_ffe = load_moist_var(
+            f"{SOM_INTERMEDIATE_PATH}{other_pfx}_ffe.nc", other_var_name
+        )
+        other_patterns_raw, _ = compute_composites(
+            other_ffe, bmus, xdim, ydim, time_dim=other_time_dim
+        )
+
+        fig, axes = create_som_figure(xdim, ydim)
+        for i in range(xdim):
+            for j in range(ydim):
+                ax = axes[j, i]
+                im = ax.contourf(
+                    lon,
+                    lat,
+                    other_patterns_raw[i, j],
+                    cmap=other_cfg["cmap_raw"],
+                    levels=other_cfg["levels_raw"],
+                    transform=ccrs.PlateCarree(),
+                    extend="max",
+                )
+                cn = ax.contour(
+                    lon,
+                    lat,
+                    z500_patterns_raw[i, j] / 98.1,
+                    colors="black",
+                    linewidths=0.5,
+                    levels=levels_Z_raw,
+                    transform=ccrs.PlateCarree(),
+                )
+                ax.clabel(cn, inline=True, fontsize=5, fmt="%.0f")
+                add_map_features(ax)
+                ax.set_title(f"({i},{j})  N={counts[i, j]}", fontsize=6)
+
+        cbar = fig.colorbar(im, ax=axes.ravel().tolist(), shrink=0.6, pad=0.02)
+        cbar.set_label(
+            f"{other_cfg['label_short']} ({other_cfg['units_raw']})", fontsize=6
+        )
+        plt.suptitle(
+            f"Flash Flood Only SOM Composite: "
+            f"{other_cfg['label_short']} (shaded) + Z500 (contoured)\n"
+            f"(SOM trained on Z500 + {moist_label_short})",
+            fontsize=8,
+            y=1.04,
+        )
+        out_fname = (
+            f"Z500_and_{_lbl}_SOM_composite_mean_{other_file_label}_shaded.png"
+        )
+        plt.savefig(f"{fig_dir}/{out_fname}", bbox_inches="tight")
+        plt.close()
+        print(f"  Saved {out_fname}")
+
     # ── Z500 trough locations ─────────────────────────────────────────────────
     print("Plotting Z500 trough locations ...")
     fig, axes = create_som_figure(xdim, ydim)
@@ -600,6 +671,33 @@ def main():
         )
     else:
         print("Skipping individual node event plots (--skip-indiv).")
+
+    # ── Single-event figures ──────────────────────────────────────────────────
+    if args.single_events:
+        singles_dir = f"{fig_dir}/single-events"
+        print(f"Saving single-event figures to {singles_dir}/ ...")
+        plot_single_events(
+            moist_ffe, bmus, xdim, ydim, lon, lat,
+            time_dim=moist_time_dim,
+            levels=levels_moist_indiv, cmap=cmap_moist_raw,
+            save_dir=singles_dir,
+            cbar_label=f"{moist_label_short} ({moist_units_raw})",
+            z500_data=z500_ffe, z500_levels=range(552, 595, 3),
+            z500_scale=1 / 98.1, z500_time_dim="time",
+        )
+        plot_single_events(
+            tp_ffe, bmus, xdim, ydim, lon, lat,
+            levels=np.arange(0, 28, 3), cmap="HomeyerRainbow",
+            save_dir=singles_dir, suffix="_precip",
+            scale=1000, cbar_label="Total Precipitation (mm)",
+        )
+        plot_single_events(
+            mslp_ffe, bmus, xdim, ydim, lon, lat,
+            levels=np.arange(976, 1041, 4), cmap=None,
+            save_dir=singles_dir, suffix="_mslp",
+            scale=0.01, contour=True,
+        )
+        print("Done saving single-event figures.")
 
     # ── Monthly histograms ────────────────────────────────────────────────────
     print("Plotting monthly histograms ...")

@@ -190,3 +190,97 @@ def plot_node_events(
             fig.suptitle(f"Node ({i},{j})  N={n}", fontsize=8, y=1.02)
             plt.savefig(save_pattern.format(i=i, j=j))
             plt.close(fig)
+
+
+def plot_single_events(
+    data,
+    bmus,
+    xdim,
+    ydim,
+    lon,
+    lat,
+    levels,
+    cmap,
+    save_dir,
+    suffix="",
+    scale=1.0,
+    cbar_label=None,
+    time_dim="valid_time",
+    contour=False,
+    z500_data=None,
+    z500_levels=None,
+    z500_scale=1.0,
+    z500_time_dim="time",
+):
+    """Save each event as an individual figure.
+
+    Files are saved to ``save_dir/node_<i>_<j>/<timestamp><suffix>.png``.
+
+    Parameters match :func:`plot_node_events` except *save_dir* replaces
+    *save_pattern* and *suffix* is appended before the file extension
+    (e.g. ``suffix="_precip"``).
+    """
+    import os
+
+    proj = ccrs.PlateCarree()
+
+    for i in range(xdim):
+        for j in range(ydim):
+            node_dir = os.path.join(save_dir, f"node_{i}_{j}")
+            os.makedirs(node_dir, exist_ok=True)
+
+            idx = get_node_indices(bmus, i, j)
+
+            for k in idx:
+                field = data.isel({time_dim: k})
+                time_val = field[time_dim].values
+                ts = str(pd.to_datetime(time_val).strftime("%Y-%m-%d_%HZ"))
+
+                fig, ax = plt.subplots(
+                    figsize=(4, 3),
+                    subplot_kw={"projection": proj},
+                    dpi=200,
+                    constrained_layout=True,
+                )
+
+                if contour:
+                    im = ax.contour(
+                        lon, lat, field.values * scale,
+                        levels=levels, colors="black",
+                        transform=proj, linewidths=0.6,
+                    )
+                    ax.clabel(im, im.levels, fontsize=5)
+                else:
+                    im = ax.contourf(
+                        lon, lat, field.values * scale,
+                        levels=levels, cmap=cmap,
+                        transform=proj, extend="max",
+                    )
+
+                    if z500_data is not None and z500_levels is not None:
+                        z500_field = z500_data.isel({z500_time_dim: k})
+                        cn = ax.contour(
+                            lon, lat,
+                            z500_field.values * z500_scale,
+                            levels=z500_levels, colors="black",
+                            linewidths=0.5, transform=proj,
+                        )
+                        ax.clabel(cn, inline=True, fontsize=5, fmt="%.0f")
+
+                ax.add_feature(cfeature.COASTLINE, linewidth=0.5)
+                ax.add_feature(cfeature.BORDERS, linewidth=0.3)
+                ax.add_feature(cfeature.STATES, linewidth=0.2)
+
+                if cbar_label and not contour:
+                    cbar = fig.colorbar(im, ax=ax, shrink=0.8, pad=0.02)
+                    cbar.set_label(cbar_label, fontsize=6)
+
+                ax.set_title(
+                    f"Node ({i},{j})  {ts.replace('_', ' ')}", fontsize=7
+                )
+
+                plt.savefig(
+                    os.path.join(node_dir, f"{ts}{suffix}.png"),
+                    bbox_inches="tight",
+                )
+                plt.close(fig)
