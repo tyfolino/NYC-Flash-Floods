@@ -25,6 +25,7 @@ IBTRACS_PATH = os.path.join(
 )
 DATA_DIR = os.path.join(_PROJECT_ROOT, "data")
 FIGS_DIR = os.path.join(_PROJECT_ROOT, "figs")
+STORM_DATA_CSV = os.path.join(DATA_DIR, "storm_data_search_results.csv")
 
 # ── Station coordinates (for ASOS precipitation) ─────────────────────────────
 
@@ -41,6 +42,11 @@ STATION_NPY_FILES = {
     "Central Park": os.path.join(PRECIP_DATA_DIR, "cp7_14_25.npy"),
     "EWR": os.path.join(PRECIP_DATA_DIR, "zewr_14_25.npy"),
 }
+
+# ── All-days SOM configuration ────────────────────────────────────────────────
+
+# Variables with daily ERA5 files available for the all-days SOM
+ALLDAYS_MOISTURE_VARS = ["IVT", "thetae"]
 
 # ── Moisture-variable configuration ──────────────────────────────────────────
 
@@ -129,6 +135,20 @@ def get_paths(moisture_var, moisture_weight=1):
         "bmu_csv_path": bmu_csv,
         "file_label": file_label,
     }
+
+
+def get_alldays_paths(moisture_var, xdim=5, ydim=4):
+    """Build output paths for an all-days SOM run.
+
+    Returns a dict with keys: fig_dir, bmu_csv_path, file_label.
+    """
+    cfg = MOISTURE_CONFIGS[moisture_var]
+    file_label = cfg["file_label"]
+    fig_dir = os.path.join(FIGS_DIR, f"Z500-and-{moisture_var}-alldays-SOM")
+    bmu_csv = os.path.join(
+        DATA_DIR, f"som_{xdim}x{ydim}_alldays_ffe_bmus_{moisture_var}.csv"
+    )
+    return {"fig_dir": fig_dir, "bmu_csv_path": bmu_csv, "file_label": file_label}
 
 
 def setup_plotting():

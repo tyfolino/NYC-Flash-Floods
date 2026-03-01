@@ -10,7 +10,53 @@ import cartopy.feature as cfeature
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import scipy.ndimage
 import xarray as xr
+
+
+def has_cutoff_low(z500_field, contour_spacing=6):
+    """Return True if a cutoff low is present in a Z500 field.
+
+    A cutoff low is identified as a local minimum whose enclosing contour
+    at (local_minimum + *contour_spacing*) forms a closed loop that does
+    not touch the domain boundary.
+
+    Parameters
+    ----------
+    z500_field : 2-D array-like
+        Z500 values in decameters (dam).
+    contour_spacing : float
+        Contour interval in dam; the closed-contour test level is set at
+        (local_minimum + contour_spacing). Default is 6 dam.
+    """
+    z500 = np.asarray(z500_field)
+
+    # Find local minima (grid points equal to the minimum in a 5×5 window)
+    min_filtered = scipy.ndimage.minimum_filter(z500, size=5)
+    local_minima = np.argwhere(z500 == min_filtered)
+
+    for i, j in local_minima:
+        # Skip minima too close to the domain edge
+        if i < 2 or i >= z500.shape[0] - 2 or j < 2 or j >= z500.shape[1] - 2:
+            continue
+
+        contour_level = z500[i, j] + contour_spacing
+        labeled, _ = scipy.ndimage.label(z500 < contour_level)
+        region_label = labeled[i, j]
+        if region_label == 0:
+            continue
+
+        region_mask = labeled == region_label
+        touches_boundary = (
+            np.any(region_mask[0, :])
+            or np.any(region_mask[-1, :])
+            or np.any(region_mask[:, 0])
+            or np.any(region_mask[:, -1])
+        )
+        if not touches_boundary:
+            return True
+
+    return False
 
 
 def load_moist_var(filepath, var_name):
@@ -125,6 +171,8 @@ def plot_node_events(
         for j in range(ydim):
             idx = get_node_indices(bmus, i, j)
             n = len(idx)
+            if n == 0:
+                continue
             rows = int(np.ceil(n / cols))
 
             fig, axes = plt.subplots(
