@@ -55,6 +55,16 @@ def parse_args():
         default=1,
         help="Moisture weight used during training (default: 1).",
     )
+    parser.add_argument(
+        "--stageiv-agg",
+        choices=["max", "spatial-median"],
+        default="max",
+        help=(
+            "Spatial aggregation for StageIV precipitation. "
+            "'max' (default): single highest value across all NYC cells. "
+            "'spatial-median': median of per-cell time-maxes."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -98,6 +108,7 @@ def plot_precip_histograms(
     source_label,
     bins=None,
     xlim=None,
+    xlabel="Max Hourly Precip (in)",
 ):
     """Plot per-node precipitation histograms."""
     if bins is None:
@@ -143,7 +154,7 @@ def plot_precip_histograms(
             ax.tick_params(axis="both", labelsize=5)
             ax.grid(True, linewidth=0.3, alpha=0.5, axis="y")
             if j == ydim - 1:
-                ax.set_xlabel("Max Hourly Precip (in)", fontsize=5)
+                ax.set_xlabel(xlabel, fontsize=5)
             if i == 0:
                 ax.set_ylabel("Count", fontsize=5)
 
@@ -161,7 +172,7 @@ def plot_precip_histograms(
 # ── StageIV Precipitation ────────────────────────────────────────────────────
 
 
-def compute_stageiv_max_precip(bmu_df, window_hours=6):
+def compute_stageiv_max_precip(bmu_df, window_hours=6, agg="max"):
     """Compute max hourly StageIV precip over NYC for each event."""
     MM_TO_IN = 1.0 / 25.4
     nyc_lat_min, nyc_lat_max = 40.5, 40.9
@@ -209,8 +220,12 @@ def compute_stageiv_max_precip(bmu_df, window_hours=6):
     for idxs in event_windows:
         if idxs:
             sub = [idx_to_sub[i] for i in idxs]
-            max_mm = np.nanmax(precip_nyc[sub, :])
-            val = float(max_mm) * MM_TO_IN if not np.isnan(max_mm) else np.nan
+            cell_maxes = np.nanmax(precip_nyc[sub, :], axis=0)  # max over time, per cell
+            if agg == "spatial-median":
+                agg_mm = np.nanmedian(cell_maxes)
+            else:
+                agg_mm = np.nanmax(cell_maxes)
+            val = float(agg_mm) * MM_TO_IN if not np.isnan(agg_mm) else np.nan
             max_precip_s4.append(val)
         else:
             max_precip_s4.append(np.nan)
@@ -861,7 +876,7 @@ def main():
     print("STAGEIV PRECIPITATION ANALYSIS")
     print("=" * 60)
     max_precip_s4, ds_s4, s4_times, spatial_mask, lat2d, lon2d = (
-        compute_stageiv_max_precip(bmu_df)
+        compute_stageiv_max_precip(bmu_df, agg=args.stageiv_agg)
     )
     bmu_df["max_precip_s4_in"] = max_precip_s4
 
@@ -876,6 +891,13 @@ def main():
     )
     print(s4_node_stats)
 
+    if args.stageiv_agg == "spatial-median":
+        s4_source_label = "Stage IV (spatial median)"
+        s4_xlabel = "Median of Max Hourly Precip (in)"
+    else:
+        s4_source_label = "Stage IV"
+        s4_xlabel = "Max Hourly Precip (in)"
+
     plot_precip_histograms(
         bmu_df,
         "max_precip_s4_in",
@@ -884,9 +906,10 @@ def main():
         fig_dir,
         _lbl,
         color="darkorange",
-        source_label="Stage IV",
+        source_label=s4_source_label,
         bins=np.arange(0, 4.01, 0.25),
         xlim=(0, 4.0),
+        xlabel=s4_xlabel,
     )
 
     # ── ERA5 Precipitation ────────────────────────────────────────────────────
