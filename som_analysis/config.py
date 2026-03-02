@@ -137,6 +137,32 @@ def get_paths(moisture_var, moisture_weight=1):
     }
 
 
+def get_evsom_paths(moisture_var, moisture_weight=1, n_hours=24):
+    """Build output paths for an evolution SOM run.
+
+    Returns a dict with keys: fig_dir, bmu_csv_path, file_label.
+    """
+    cfg = MOISTURE_CONFIGS[moisture_var]
+    file_label = cfg["file_label"]
+
+    if moisture_weight == 1:
+        w_prefix = ""
+    elif moisture_weight == int(moisture_weight):
+        w_prefix = str(int(moisture_weight))
+    else:
+        w_prefix = str(moisture_weight)
+
+    subdir = f"Z500-and-{moisture_var}-evSOM-{n_hours}h"
+    if w_prefix:
+        subdir = f"Z500-and-{w_prefix}{moisture_var}-evSOM-{n_hours}h"
+
+    fig_dir = os.path.join(FIGS_DIR, subdir)
+    bmu_csv = os.path.join(
+        DATA_DIR, f"som_2x2_evsom_{n_hours}h_bmus_{moisture_var}.csv"
+    )
+    return {"fig_dir": fig_dir, "bmu_csv_path": bmu_csv, "file_label": file_label}
+
+
 def get_alldays_paths(moisture_var, xdim=5, ydim=4):
     """Build output paths for an all-days SOM run.
 

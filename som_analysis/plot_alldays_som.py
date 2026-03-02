@@ -89,7 +89,7 @@ def _node_title(i, j, counts, totals, risk):
     r = risk[i, j]
     if np.isnan(r):
         return f"({i},{j})  FF=0/{tot}"
-    return f"({i},{j})  FF={n}/{tot} ({r:.1%})"
+    return f"({i},{j})  FF={n}/{tot} ({r*100:.1f}\\%)"
 
 
 def main():
@@ -121,16 +121,16 @@ def main():
     print(f"Loading SOM results from {cache_path} ...")
     cached = np.load(cache_path)
     weights = cached["weights"]
-    z500_nodes = cached["z500_nodes"]      # shape (xdim, ydim, n_lat, n_lon)
+    z500_nodes = cached["z500_nodes"]  # shape (xdim, ydim, n_lat, n_lon)
     moist_nodes = cached["moist_nodes"]
-    bmus = cached["bmus"]                  # shape (n_days, 2)
+    bmus = cached["bmus"]  # shape (n_days, 2)
     u_matrix = cached["u_matrix"]
     hit_map = cached["hit_map"]
     coords = cached["coords"]
     event_indices = cached["event_indices"]
-    counts = cached["counts"]              # shape (xdim, ydim) — FF days per node
-    totals = cached["totals"]              # shape (xdim, ydim) — all days per node
-    risk = cached["risk"]                  # shape (xdim, ydim)
+    counts = cached["counts"]  # shape (xdim, ydim) — FF days per node
+    totals = cached["totals"]  # shape (xdim, ydim) — all days per node
+    risk = cached["risk"]  # shape (xdim, ydim)
     lat = cached["lat"]
     lon = cached["lon"]
 
@@ -145,18 +145,14 @@ def main():
     moist_norm_daily = load_moist_var(
         f"{SOM_INTERMEDIATE_PATH}{pfx}_norm_daily.nc", var_name
     )
-    moist_daily = load_moist_var(
-        f"{SOM_INTERMEDIATE_PATH}{pfx}_daily.nc", var_name
-    )
+    moist_daily = load_moist_var(f"{SOM_INTERMEDIATE_PATH}{pfx}_daily.nc", var_name)
     z500_norm_weighted_daily = xr.load_dataarray(
         f"{SOM_INTERMEDIATE_PATH}era5_Z500_norm_weighted_daily.nc"
     )
     z500_norm_daily = xr.load_dataarray(
         f"{SOM_INTERMEDIATE_PATH}era5_Z500_norm_daily.nc"
     )
-    z500_daily = xr.load_dataarray(
-        f"{SOM_INTERMEDIATE_PATH}era5_Z500_daily.nc"
-    )
+    z500_daily = xr.load_dataarray(f"{SOM_INTERMEDIATE_PATH}era5_Z500_daily.nc")
 
     # ── Compute QE for FF days ────────────────────────────────────────────────
     # Reconstruct feature matrix X for QE calculation (matches training)
@@ -165,27 +161,27 @@ def main():
     moist_flat = moist_norm_weighted_daily.stack(
         features=[cfg["lat_dim"], cfg["lon_dim"]]
     ).values
-    X = np.concatenate(
-        (z500_flat, moist_flat * args.moisture_weight), axis=1
-    )
+    X = np.concatenate((z500_flat, moist_flat * args.moisture_weight), axis=1)
 
-    qe_ff = np.array([
-        np.linalg.norm(X[k] - weights[bmus[k, 0] * ydim + bmus[k, 1]])
-        for k in event_indices
-    ])
-    ff_timestamps = pd.to_datetime(
-        z500_norm_daily["time"].values[event_indices]
+    qe_ff = np.array(
+        [
+            np.linalg.norm(X[k] - weights[bmus[k, 0] * ydim + bmus[k, 1]])
+            for k in event_indices
+        ]
     )
+    ff_timestamps = pd.to_datetime(z500_norm_daily["time"].values[event_indices])
     ff_node_i = bmus[event_indices, 0]
     ff_node_j = bmus[event_indices, 1]
 
     # Save QE ranking CSV
-    qe_df = pd.DataFrame({
-        "timestamp": ff_timestamps,
-        "node_i": ff_node_i,
-        "node_j": ff_node_j,
-        "qe": qe_ff,
-    }).sort_values("qe")
+    qe_df = pd.DataFrame(
+        {
+            "timestamp": ff_timestamps,
+            "node_i": ff_node_i,
+            "node_j": ff_node_j,
+            "qe": qe_ff,
+        }
+    ).sort_values("qe")
     qe_df.to_csv(os.path.join(fig_dir, "qe_ranking.csv"), index=False)
     print(f"  Saved QE ranking to {fig_dir}/qe_ranking.csv")
 
@@ -236,14 +232,18 @@ def main():
                 plt.plot(
                     [coords[node, 0], coords[nbr, 0]],
                     [coords[node, 1], coords[nbr, 1]],
-                    "k-", lw=0.6, alpha=0.4,
+                    "k-",
+                    lw=0.6,
+                    alpha=0.4,
                 )
             if i + 1 < xdim:
                 nbr = (i + 1) * ydim + j
                 plt.plot(
                     [coords[node, 0], coords[nbr, 0]],
                     [coords[node, 1], coords[nbr, 1]],
-                    "k-", lw=0.6, alpha=0.4,
+                    "k-",
+                    lw=0.6,
+                    alpha=0.4,
                 )
 
     for idx, (x, y) in enumerate(coords):
@@ -268,14 +268,21 @@ def main():
         for j in range(ydim):
             ax = axes[j, i]
             im = ax.contourf(
-                lon, lat, moist_nodes[i, j],
-                cmap="balance", levels=levels_moist_weights,
+                lon,
+                lat,
+                moist_nodes[i, j],
+                cmap="balance",
+                levels=levels_moist_weights,
                 transform=proj,
             )
             cn = ax.contour(
-                lon, lat, z500_nodes[i, j],
-                colors="black", linewidths=0.5,
-                levels=levels_Z, transform=proj,
+                lon,
+                lat,
+                z500_nodes[i, j],
+                colors="black",
+                linewidths=0.5,
+                levels=levels_Z,
+                transform=proj,
             )
             ax.clabel(cn, inline=True, fontsize=4, fmt="%.1f")
             add_map_features(ax)
@@ -308,14 +315,22 @@ def main():
         for j in range(ydim):
             ax = axes[j, i]
             im = ax.contourf(
-                lon, lat, moist_anom_comp[i, j],
-                cmap="balance", levels=levels_moist_anom,
-                transform=proj, extend="both",
+                lon,
+                lat,
+                moist_anom_comp[i, j],
+                cmap="balance",
+                levels=levels_moist_anom,
+                transform=proj,
+                extend="both",
             )
             ax.contour(
-                lon, lat, z500_anom_comp[i, j],
-                colors="black", linewidths=0.5,
-                levels=levels_Z_anom, transform=proj,
+                lon,
+                lat,
+                z500_anom_comp[i, j],
+                colors="black",
+                linewidths=0.5,
+                levels=levels_Z_anom,
+                transform=proj,
             )
             add_map_features(ax)
             ax.set_title(_node_title(i, j, counts, totals, risk), fontsize=5)
@@ -325,7 +340,8 @@ def main():
     plt.suptitle(
         f"All-Days SOM Anomaly Composites (All Days): "
         f"Z500 (contoured) + {moist_label_short} (shaded)",
-        fontsize=8, y=1.04,
+        fontsize=8,
+        y=1.04,
     )
     plt.savefig(
         f"{fig_dir}/Z500_and_{_lbl}_SOM_anomaly_composites.png",
@@ -335,9 +351,7 @@ def main():
 
     # ── Raw composites — all days ─────────────────────────────────────────────
     print("Plotting raw composites (all days) ...")
-    z500_raw_comp, _ = compute_composites(
-        z500_daily, bmus, xdim, ydim, time_dim="time"
-    )
+    z500_raw_comp, _ = compute_composites(z500_daily, bmus, xdim, ydim, time_dim="time")
     moist_raw_comp, _ = compute_composites(
         moist_daily, bmus, xdim, ydim, time_dim=moist_time_dim
     )
@@ -348,14 +362,22 @@ def main():
         for j in range(ydim):
             ax = axes[j, i]
             im = ax.contourf(
-                lon, lat, moist_raw_comp[i, j],
-                cmap=cmap_moist_raw, levels=levels_moist_raw,
-                transform=proj, extend="max",
+                lon,
+                lat,
+                moist_raw_comp[i, j],
+                cmap=cmap_moist_raw,
+                levels=levels_moist_raw,
+                transform=proj,
+                extend="max",
             )
             cn = ax.contour(
-                lon, lat, z500_raw_comp[i, j] / 98.1,
-                colors="black", linewidths=0.5,
-                levels=levels_Z_raw, transform=proj,
+                lon,
+                lat,
+                z500_raw_comp[i, j] / 98.1,
+                colors="black",
+                linewidths=0.5,
+                levels=levels_Z_raw,
+                transform=proj,
             )
             ax.clabel(cn, inline=True, fontsize=4, fmt="%.0f")
             add_map_features(ax)
@@ -366,7 +388,8 @@ def main():
     plt.suptitle(
         f"All-Days SOM Composites (All Days): "
         f"{moist_label_short} (shaded) + Z500 (contoured)",
-        fontsize=8, y=1.04,
+        fontsize=8,
+        y=1.04,
     )
     plt.savefig(
         f"{fig_dir}/Z500_and_{_lbl}_SOM_raw_composites_alldays.png",
@@ -402,14 +425,22 @@ def main():
         for j in range(ydim):
             ax = axes[j, i]
             im = ax.contourf(
-                lon, lat, moist_ff_comp[i, j],
-                cmap=cmap_moist_raw, levels=levels_moist_raw,
-                transform=proj, extend="max",
+                lon,
+                lat,
+                moist_ff_comp[i, j],
+                cmap=cmap_moist_raw,
+                levels=levels_moist_raw,
+                transform=proj,
+                extend="max",
             )
             cn = ax.contour(
-                lon, lat, z500_ff_comp[i, j] / 98.1,
-                colors="black", linewidths=0.5,
-                levels=levels_Z_raw, transform=proj,
+                lon,
+                lat,
+                z500_ff_comp[i, j] / 98.1,
+                colors="black",
+                linewidths=0.5,
+                levels=levels_Z_raw,
+                transform=proj,
             )
             ax.clabel(cn, inline=True, fontsize=4, fmt="%.0f")
             add_map_features(ax)
@@ -420,7 +451,8 @@ def main():
     plt.suptitle(
         f"All-Days SOM Composites (FF Days Only): "
         f"{moist_label_short} (shaded) + Z500 (contoured)",
-        fontsize=8, y=1.04,
+        fontsize=8,
+        y=1.04,
     )
     plt.savefig(
         f"{fig_dir}/Z500_and_{_lbl}_SOM_raw_composites_ff.png",
@@ -451,15 +483,22 @@ def main():
             for j in range(ydim):
                 ax = axes[j, i]
                 im = ax.contourf(
-                    lon, lat, other_comp[i, j],
+                    lon,
+                    lat,
+                    other_comp[i, j],
                     cmap=other_cfg["cmap_raw"],
                     levels=other_cfg["levels_raw"],
-                    transform=proj, extend="max",
+                    transform=proj,
+                    extend="max",
                 )
                 cn = ax.contour(
-                    lon, lat, z500_raw_comp[i, j] / 98.1,
-                    colors="black", linewidths=0.5,
-                    levels=levels_Z_raw, transform=proj,
+                    lon,
+                    lat,
+                    z500_raw_comp[i, j] / 98.1,
+                    colors="black",
+                    linewidths=0.5,
+                    levels=levels_Z_raw,
+                    transform=proj,
                 )
                 ax.clabel(cn, inline=True, fontsize=4, fmt="%.0f")
                 add_map_features(ax)
@@ -473,7 +512,8 @@ def main():
             f"All-Days SOM Composites (All Days): "
             f"{other_cfg['label_short']} (shaded) + Z500 (contoured)\n"
             f"(SOM trained on Z500 + {moist_label_short})",
-            fontsize=8, y=1.04,
+            fontsize=8,
+            y=1.04,
         )
         out_fname = f"Z500_and_{_lbl}_SOM_composite_mean_{other_file_label}_shaded.png"
         plt.savefig(f"{fig_dir}/{out_fname}", bbox_inches="tight")
@@ -482,10 +522,14 @@ def main():
 
     # ── FF risk heatmap ───────────────────────────────────────────────────────
     print("Plotting FF risk heatmap ...")
-    fig, ax = plt.subplots(figsize=(0.8 * xdim + 1, 0.9 * ydim + 1),
-                           dpi=300, constrained_layout=True)
+    fig, ax = plt.subplots(
+        figsize=(0.8 * xdim + 1, 0.9 * ydim + 1), dpi=300, constrained_layout=True
+    )
     im = ax.imshow(
-        risk.T, cmap="YlOrRd", vmin=0, vmax=risk[~np.isnan(risk)].max(),
+        risk.T,
+        cmap="YlOrRd",
+        vmin=0,
+        vmax=risk[~np.isnan(risk)].max(),
         origin="lower",
     )
     for i in range(xdim):
@@ -493,9 +537,15 @@ def main():
             r = risk[i, j]
             txt = f"{r:.1%}" if not np.isnan(r) else "N/A"
             ax.text(
-                i, j, f"{counts[i,j]}/{totals[i,j]}\n{txt}",
-                ha="center", va="center", fontsize=6,
-                color="white" if (not np.isnan(r) and r > 0.6 * risk[~np.isnan(risk)].max()) else "black",
+                i,
+                j,
+                f"{counts[i, j]}/{totals[i, j]}\n{txt}",
+                ha="center",
+                va="center",
+                fontsize=6,
+                color="white"
+                if (not np.isnan(r) and r > 0.6 * risk[~np.isnan(risk)].max())
+                else "black",
             )
     ax.set_xticks(np.arange(xdim))
     ax.set_yticks(np.arange(ydim))
@@ -521,11 +571,11 @@ def main():
             if counts[i, j] > 0:
                 cutoff_freq[i, j] = cutoff_count[i, j] / counts[i, j]
 
-    fig, ax = plt.subplots(figsize=(0.8 * xdim + 1, 0.9 * ydim + 1),
-                           dpi=300, constrained_layout=True)
+    fig, ax = plt.subplots(
+        figsize=(0.8 * xdim + 1, 0.9 * ydim + 1), dpi=300, constrained_layout=True
+    )
     vmax = max(cutoff_freq.max(), 0.01)
-    im = ax.imshow(cutoff_freq.T * 100, cmap="YlOrRd", vmin=0, vmax=100,
-                   origin="lower")
+    im = ax.imshow(cutoff_freq.T * 100, cmap="YlOrRd", vmin=0, vmax=100, origin="lower")
     for i in range(xdim):
         for j in range(ydim):
             frac = cutoff_freq[i, j]
@@ -533,7 +583,12 @@ def main():
             n = counts[i, j]
             txt = f"{frac:.0%}\n({cnt}/{n})" if n > 0 else "n=0"
             ax.text(
-                i, j, txt, ha="center", va="center", fontsize=6,
+                i,
+                j,
+                txt,
+                ha="center",
+                va="center",
+                fontsize=6,
                 color="white" if frac > 0.5 else "black",
             )
     ax.set_xticks(np.arange(xdim))
@@ -554,37 +609,50 @@ def main():
         # Get original indices into event_indices
         sel_timestamps = pd.to_datetime(selection["timestamp"].values)
         all_timestamps = pd.to_datetime(z500_norm_daily["time"].values)
-        sel_global_idx = np.array([
-            np.where(all_timestamps == ts)[0][0] for ts in sel_timestamps
-        ])
+        sel_global_idx = np.array(
+            [np.where(all_timestamps == ts)[0][0] for ts in sel_timestamps]
+        )
         n_sel = len(sel_global_idx)
         cols = 5
         rows = int(np.ceil(n_sel / cols))
 
         fig, axes_grid = plt.subplots(
-            rows, cols,
+            rows,
+            cols,
             figsize=(3 * cols, 2.5 * rows),
             subplot_kw={"projection": proj},
-            layout="constrained", dpi=200,
+            layout="constrained",
+            dpi=200,
         )
 
         for k, ax in enumerate(axes_grid.flat):
             if k < n_sel:
                 gidx = sel_global_idx[k]
                 ts = sel_timestamps[k]
-                ni, nj = int(selection["node_i"].iloc[k]), int(selection["node_j"].iloc[k])
+                ni, nj = (
+                    int(selection["node_i"].iloc[k]),
+                    int(selection["node_j"].iloc[k]),
+                )
                 field_moist = moist_daily.isel({moist_time_dim: gidx})
                 field_z500 = z500_daily.isel(time=gidx)
 
                 im = ax.contourf(
-                    lon, lat, field_moist.values,
-                    cmap=cmap_moist_raw, levels=levels_moist_indiv,
-                    transform=proj, extend="max",
+                    lon,
+                    lat,
+                    field_moist.values,
+                    cmap=cmap_moist_raw,
+                    levels=levels_moist_indiv,
+                    transform=proj,
+                    extend="max",
                 )
                 cn = ax.contour(
-                    lon, lat, field_z500.values / 98.1,
-                    colors="black", linewidths=0.5,
-                    levels=levels_Z_raw, transform=proj,
+                    lon,
+                    lat,
+                    field_z500.values / 98.1,
+                    colors="black",
+                    linewidths=0.5,
+                    levels=levels_Z_raw,
+                    transform=proj,
                 )
                 ax.clabel(cn, inline=True, fontsize=4, fmt="%.0f")
                 add_map_features(ax)
@@ -600,7 +668,8 @@ def main():
         fig.suptitle(
             f"FF Days — {qe_label} QE (Top {n_sel}): "
             f"{moist_label_short} (shaded) + Z500 (contoured)",
-            fontsize=8, y=1.02,
+            fontsize=8,
+            y=1.02,
         )
         plt.savefig(f"{fig_dir}/qe_{label}_{n_sel}.png", bbox_inches="tight")
         plt.close()
@@ -616,27 +685,25 @@ def main():
 
     for i in range(xdim):
         for j in range(ydim):
-            idx_ff_node = np.intersect1d(
-                get_node_indices(bmus, i, j), event_indices
-            )
+            idx_ff_node = np.intersect1d(get_node_indices(bmus, i, j), event_indices)
             if len(idx_ff_node) == 0:
                 continue
             node_wt = weights[i * ydim + j]
 
-            z500_obs = np.stack([
-                z500_norm_daily.isel(time=int(k)).values for k in idx_ff_node
-            ])
-            moist_obs = np.stack([
-                moist_norm_daily.isel({moist_time_dim: int(k)}).values
-                for k in idx_ff_node
-            ])
+            z500_obs = np.stack(
+                [z500_norm_daily.isel(time=int(k)).values for k in idx_ff_node]
+            )
+            moist_obs = np.stack(
+                [
+                    moist_norm_daily.isel({moist_time_dim: int(k)}).values
+                    for k in idx_ff_node
+                ]
+            )
 
             z500_residuals[i, j] = np.mean(z500_obs - z500_nodes[i, j], axis=0)
             moist_residuals[i, j] = np.mean(moist_obs - moist_nodes[i, j], axis=0)
 
-            corr_vals = [
-                np.corrcoef(X[k], node_wt)[0, 1] for k in idx_ff_node
-            ]
+            corr_vals = [np.corrcoef(X[k], node_wt)[0, 1] for k in idx_ff_node]
             mean_corr_per_node[i, j] = np.mean(corr_vals)
 
     levels_resid = np.arange(-2.0, 2.05, 0.2)
@@ -649,18 +716,26 @@ def main():
                 add_map_features(ax)
                 continue
             im = ax.contourf(
-                lon, lat, moist_residuals[i, j],
-                cmap="balance", levels=levels_resid,
-                transform=proj, extend="both",
+                lon,
+                lat,
+                moist_residuals[i, j],
+                cmap="balance",
+                levels=levels_resid,
+                transform=proj,
+                extend="both",
             )
             ax.contour(
-                lon, lat, z500_residuals[i, j],
-                colors="black", linewidths=0.5,
-                levels=levels_resid, transform=proj,
+                lon,
+                lat,
+                z500_residuals[i, j],
+                colors="black",
+                linewidths=0.5,
+                levels=levels_resid,
+                transform=proj,
             )
             add_map_features(ax)
             ax.set_title(
-                f"({i},{j}) n={counts[i,j]} r={mean_corr_per_node[i,j]:.2f}",
+                f"({i},{j}) n={counts[i, j]} r={mean_corr_per_node[i, j]:.2f}",
                 fontsize=5,
             )
 
@@ -668,7 +743,8 @@ def main():
     cbar.set_label("Standardized Residual", fontsize=6)
     plt.suptitle(
         f"Mean Residuals (FF days): Z500 (contoured) + {moist_label_short} (shaded)",
-        fontsize=8, y=1.04,
+        fontsize=8,
+        y=1.04,
     )
     plt.savefig(f"{fig_dir}/residuals_ff.png", bbox_inches="tight")
     plt.close()
@@ -701,7 +777,10 @@ def main():
         plot_node_events(
             moist_ff_indexed,
             ff_bmus,
-            xdim, ydim, lon, lat,
+            xdim,
+            ydim,
+            lon,
+            lat,
             time_dim=moist_time_dim,
             levels=levels_moist_indiv,
             cmap=cmap_moist_raw,
